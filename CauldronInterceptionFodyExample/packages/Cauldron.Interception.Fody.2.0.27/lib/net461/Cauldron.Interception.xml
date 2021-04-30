@@ -1,0 +1,533 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Cauldron.Interception</name>
+    </assembly>
+    <members>
+        <member name="T:Cauldron.Interception.AssignMethodAttribute">
+             <summary>
+             Indicates the weaver to find the matching method and assign it to the <see cref="T:System.Action"/> or <see cref="T:System.Func`1"/><br/>
+             This attribute can only be applied to public non-static fields of type <see cref="T:System.Action"/> and <see cref="T:System.Func`1"/>; with or without arguments.<br/>
+             If the field's type is an <see cref="T:System.Action"/>, the weaver will search for a void method without arguments.<br/>
+             If the field's type is an <see cref="T:System.Action`1"/>, the weaver will search for a void method with 1 argument.<br/>
+             If the field's type in a <see cref="T:System.Func`1"/>, the weaver will search for a method with a return type that matches TResult and no argmuents.<br/>
+             If the field's type in a <see cref="T:System.Func`2"/>, the weaver will search for a method with a return type that matches TResult and 1 argmuent.
+             <para/>
+             This interceptor extension is available for <see cref="T:Cauldron.Interception.IPropertyGetterInterceptor"/>, <see cref="T:Cauldron.Interception.IPropertySetterInterceptor"/>,
+             <see cref="T:Cauldron.Interception.IPropertyInterceptor"/>, <see cref="T:Cauldron.Interception.IMethodInterceptor"/> and <see cref="T:Cauldron.Interception.IConstructorInterceptor"/>.
+             <para/>
+             Since properties are only methods, the <see cref="T:Cauldron.Interception.AssignMethodAttribute"/> can also search for the property's getter and setter.
+             The getter requires a 'get_' prefix and the setter a 'set_' prefix e.g. if the property is named 'DispatchDate' then the setter search pattern will be
+             'set_DispatchDate' and the setter's search pattern will be 'get_DispatchDate'.
+             </summary>
+             <example>
+             The following sample implementation will execute a method if a property setter is invoked.
+             The method to execute is described by the constructor parameter 'On{Name}Set'.
+             '{Name}' is a placeholder and will be replaced by the property's name.
+             <code>
+             [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+             public sealed class PropertyOnSetAttribute : Attribute, IPropertySetterInterceptor
+             {
+                 [AssignMethod("On{Name}Set")]
+                 public Action onPropertySet;
+            
+                 public void OnException(Exception e)
+                 {
+                 }
+            
+                 public void OnExit()
+                 {
+                 }
+            
+                 public bool OnSet(PropertyInterceptionInfo propertyInterceptionInfo, object oldValue, object newValue)
+                 {
+                     this.onPropertySet?.Invoke();
+                     return false;
+                 }
+             }
+             </code>
+             The following is a sample usage of the interceptor above.
+             <code>
+             [PropertyOnSet]
+             public DateTime DispatchDate { get; set; }
+            
+             private void OnDispatchDateSet()
+             {
+                // Your code that is executed if a value is assigned to the DispatchDate property.
+             }
+             </code>
+             <br/>
+             The following sample interceptor implementation accepts a custom method name.
+             <code>
+             [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+             public sealed class PropertyOnSetAttribute : Attribute, IPropertySetterInterceptor
+             {
+                 [AssignMethod("{CtorArgument:0}")]
+                 public Action&gt;string, object, object&lt; onPropertySet;
+            
+                 public PropertyOnSetAttribute(string onSetPropertyMethod)
+                 {
+                 }
+            
+                 public void OnException(Exception e)
+                 {
+                 }
+            
+                 public void OnExit()
+                 {
+                 }
+            
+                 public bool OnSet(PropertyInterceptionInfo propertyInterceptionInfo, object oldValue, object newValue)
+                 {
+                     this.onPropertySet?.Invoke(propertyInterceptionInfo.PropertyName, oldValue, newValue);
+                     return false;
+                 }
+             }
+             </code>
+             The '{CtorArgument:0}' placeholder tells the weaver that the name (or part of the name) of the method to assign to the
+             'onPropertySet' field is described by the the first constructor parameter of the 'PropertyOnSetAttribute'.
+             <br/>
+             The following is a sample usage of the interceptor above.
+             <code>
+             [PropertyOnSet(nameof(AnyMethodToExecute))]
+             public DateTime DispatchDate { get; set; }
+            
+             private void AnyMethodToExecute(string propertyName, object oldValue, object newValue)
+             {
+                // Your code that is executed if a value is assigned to the DispatchDate property.
+             }
+             </code>
+             </example>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Cauldron.Interception.AssignMethodAttribute.#ctor(System.String,System.Boolean)" -->
+        <member name="P:Cauldron.Interception.AssignMethodAttribute.MethodName">
+            <summary>
+            Gets the name of the method to find.
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.DoNotInterceptAttribute">
+            <summary>
+            Indicates that the method or property should not be intercepted. <br/>
+            ATTENTION: Only the property and method interceptors that is applied to a type respects this attribute
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.Extensions">
+            <summary>
+            Provides usefull extension methods
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.Extensions.CreateType``1(System.Object)">
+            <summary>
+            Creates a new <see cref="T:System.Type"/> that implements the properties of an interface defined by <typeparamref name="T"/>
+            and copies all value of <paramref name="anon"/> to the new object.
+            </summary>
+            <typeparam name="T">The type of interface to implement</typeparam>
+            <param name="anon">The anonymous object</param>
+            <returns>A new object implementing the interface defined by <typeparamref name="T"/></returns>
+            <example>
+            In some special cases (e.g. unit tests) it may be required to convert an anonymous type to a type that implements a certain interface.
+            This also can be handy in situations where it is an overkill to create a new class.
+            Lazy programmers will love this. To achieve this, a new type is weaved into your assembly.
+            <para/>
+            The following examples illustrates how the weaver modifies your code.
+            <para/>
+            Your code:
+            <code>
+            private static void Main(string[] args)
+            {
+                var sample = new { Index = 0, Name = "Hello" }.CreateType&lt;ISampleInterface&gt;();
+                Console.WriteLine(sample.Name);
+            }
+            </code>
+            Your code will look like this after the weaver's modification:
+            <code>
+            private static void Main(string[] args)
+            {
+                var sample = Assign(new
+                {
+                    Index = 0,
+                    Name = "Hello"
+                });
+                Console.WriteLine(sample.Name);
+            }
+            </code>
+            The weaver creates a new type that implements the ISampleInterface.
+            <code>
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            [Serializable]
+            public sealed class SampleInterfaceCauldronAnonymousType : ISampleInterface
+            {
+                public int Index { get; set; }
+                public string Name { get; set; }
+            }
+            </code>
+            The weaver also adds a new method that maps the values from the anonymous type to the SampleInterfaceCauldronAnonymousType.
+            <code>
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            private static SampleInterfaceCauldronAnonymousType Assign(AnonymousType&lt;int, string&gt; anonymousType)
+            {
+                return new SampleInterfaceCauldronAnonymousType
+                {
+                    Index = anonymousType.Index,
+                    Name = anonymousType.Name
+                };
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Cauldron.Interception.Extensions.GetSHA256Hash(System.String)">
+            <exclude/>
+        </member>
+        <member name="M:Cauldron.Interception.Extensions.TryDisposeInternal(System.Object)">
+            <exclude/>
+        </member>
+        <member name="T:Cauldron.Interception.IConstructorInterceptor">
+             <summary>
+             Represents a contructor interceptor.
+             <para/>
+             Please note that <see cref="T:Cauldron.Interception.ISyncRoot"/> is NOT supported by this interceptor.
+             </summary>
+             <example>
+             Sample implementation:
+             <code>
+             [AttributeUsage(AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
+             public sealed class TestConstructorInterceptorA : Attribute, IConstructorInterceptor
+             {
+                 public void OnBeforeInitialization(Type declaringType, MethodBase methodbase, object[] values)
+                 {
+                 }
+            
+                 public void OnEnter(Type declaringType, object instance, MethodBase methodbase, object[] values)
+                 {
+                 }
+            
+                 public void OnException(Exception e)
+                 {
+                 }
+            
+                 public void OnExit()
+                 {
+                 }
+             }
+             </code>
+             The interceptor is also capable of handling attributes with parameters.
+             <para/>
+             Your code:
+             <code>
+             public class ConstructorInterceptorTestClass
+             {
+                 [TestConstructorInterceptorA]
+                 public ConstructorInterceptorTestClass(string arg)
+                 {
+                 }
+             }
+             </code>
+             What gets compiled:
+             <code>
+             public ConstructorInterceptorTestClass(string arg)
+             {
+                 var values = new object[] { arg };
+                 var constructorInterceptor = new TestConstructorInterceptorA();
+                 constructorInterceptor.OnBeforeInitialization(typeof(ConstructorInterceptorTestClass), MethodBase.GetMethodFromHandle(methodof(ConstructorInterceptorTestClass..ctor()).MethodHandle, typeof(ConstructorInterceptorTestClass).TypeHandle), values);
+                 base..ctor();
+                 try
+                 {
+            	        constructorInterceptor.OnEnter(typeof(ConstructorInterceptorTestClass), this, MethodBase.GetMethodFromHandle(methodof(ConstructorInterceptorTestClass..ctor()).MethodHandle, typeof(ConstructorInterceptorTestClass).TypeHandle), values);
+                 }
+                 catch (Exception e)
+                 {
+            	        constructorInterceptor.OnException(e);
+            	        throw;
+                 }
+                 finally
+                 {
+            	        constructorInterceptor.OnExit();
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Cauldron.Interception.IConstructorInterceptor.OnBeforeInitialization(System.Type,System.Reflection.MethodBase,System.Object[])">
+            <summary>
+            Invoked before the initialization of the class.
+            <para/>
+            This happens before the base call which means that the instance has not been created yet. Use this with care.
+            </summary>
+            <param name="declaringType">The type declaring the intercepted contructor</param>
+            <param name="methodbase">Contains information about the constructor.</param>
+            <param name="values">The passed arguments of the constructor.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IConstructorInterceptor.OnEnter(System.Type,System.Object,System.Reflection.MethodBase,System.Object[])">
+            <summary>
+            Invoked if an intercepted contructor has been called.
+            </summary>
+            <param name="declaringType">The type declaring the intercepted contructor</param>
+            <param name="instance">
+            The instance of the class where the method is residing. will be null if the constructor is static.
+            </param>
+            <param name="methodbase">Contains information about the constructor.</param>
+            <param name="values">The passed arguments of the constructor.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IConstructorInterceptor.OnException(System.Exception)">
+            <summary>
+            Invoked if an intercepted construtor has raised an exception. The constructor will always rethrow
+            the exception.
+            </summary>
+            <param name="e">The exception information.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IConstructorInterceptor.OnExit">
+            <summary>
+            Invoked if the intercepted constructor has finished executing.
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.IInterceptor">
+            <exclude/>
+        </member>
+        <member name="T:Cauldron.Interception.IMethodInterceptor">
+             <summary>
+             Represents a method interceptor
+             </summary>
+             <example>
+             Sample implementation:
+             <code>
+             [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+             public class MyInterceptorAttribute : Attribute, IMethodInterceptor
+             {
+                 public MyInterceptorAttribute()
+                 {
+                 }
+            
+                 public void OnEnter(Type declaringType, object instance, MethodBase methodbase, object[] values)
+                 {
+                 }
+            
+                 public void OnException(Exception e)
+                 {
+                 }
+            
+                 public void OnExit()
+                 {
+                 }
+             }
+             </code>
+             The interceptor is also capable of handling attributes with parameters.
+             <para/>
+             Your code:
+             <code>
+             public class SampleClass
+             {
+                 [MyInterceptor]
+                 public void SampleMethod()
+                 {
+                     Debug.WriteLine("Blablablablablabla");
+                 }
+             }
+             </code>
+             What gets compiled:
+             <code>
+             public class SampleClass
+             {
+                 public void SampleMethod()
+                 {
+                     var interceptorAttribute = new MyInterceptorAttribute("Any valid attribute parameter types");
+            
+                     try
+                     {
+                         interceptorAttribute.OnEnter(typeof(SampleClass), this, MethodBase.GetMethodFromHandle(methodof(SampleClass.SampleMethod()).MethodHandle, typeof(SampleClass).TypeHandle), new object[0]);
+                         Debug.WriteLine("Blablablablablabla");
+                     }
+                     catch (Exception e)
+                     {
+                         interceptorAttribute.OnException(e);
+                         throw;
+                     }
+                     finally
+                     {
+                         interceptorAttribute.OnExit();
+                     }
+                 }
+             }
+             </code>
+             </example>
+        </member>
+        <member name="M:Cauldron.Interception.IMethodInterceptor.OnEnter(System.Type,System.Object,System.Reflection.MethodBase,System.Object[])">
+            <summary>
+            Invoked if an intercepted method has been called
+            </summary>
+            <param name="declaringType">The type declaring the intercepted method</param>
+            <param name="instance">
+            The instance of the class where the method is residing. will be null if the method is static
+            </param>
+            <param name="methodbase">Contains information about the method</param>
+            <param name="values">The passed arguments of the method.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IMethodInterceptor.OnException(System.Exception)">
+            <summary>
+            Invoked if an intercepted method has raised an exception. The method will always rethrow
+            the exception.
+            </summary>
+            <param name="e">The exception information.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IMethodInterceptor.OnExit">
+            <summary>
+            Invoked if the intercepted method has finished executing.
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.IPropertyGetterInterceptor">
+            <summary>
+            Represents an interceptor that can intercept a property's getter method
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertyGetterInterceptor.OnException(System.Exception)">
+            <summary>
+            Invoked if an intercepted method has raised an exception. The method will always rethrow
+            the exception.
+            </summary>
+            <param name="e">The exception information.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertyGetterInterceptor.OnExit">
+            <summary>
+            Invoked if the intercepted method has finished executing.
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertyGetterInterceptor.OnGet(Cauldron.Interception.PropertyInterceptionInfo,System.Object)">
+            <summary>
+            Invoked if the intercepted property getter has been called
+            </summary>
+            <param name="propertyInterceptionInfo">
+            An object that containes information about the intercepted method
+            </param>
+            <param name="value">The current value of the property</param>
+        </member>
+        <member name="T:Cauldron.Interception.IPropertyInterceptor">
+            <summary>
+            Represents an interceptor that can intercept a property's getter and setter method
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.IPropertyInterceptorInitialize">
+            <summary>
+            Moves the property interceptor's initialization from 'first use' to the constructor of the declaring type.
+            <para/>
+            This interceptor extension is available for <see cref="T:Cauldron.Interception.IPropertyGetterInterceptor"/>, <see cref="T:Cauldron.Interception.IPropertySetterInterceptor"/> and <see cref="T:Cauldron.Interception.IPropertyInterceptor"/>.
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertyInterceptorInitialize.OnInitialize(Cauldron.Interception.PropertyInterceptionInfo,System.Object)">
+            <summary>
+            Invoked if the declaring class is initialized.
+            </summary>
+            <param name="propertyInterceptionInfo">
+            An object that containes information about the intercepted method
+            </param>
+            <param name="value">The current value of the property</param>
+        </member>
+        <member name="T:Cauldron.Interception.IPropertySetterInterceptor">
+            <summary>
+            Represents an interceptor that can intercept a property's setter method
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertySetterInterceptor.OnException(System.Exception)">
+            <summary>
+            Invoked if an intercepted method has raised an exception. The method will always rethrow
+            the exception.
+            </summary>
+            <param name="e">The exception information.</param>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertySetterInterceptor.OnExit">
+            <summary>
+            Invoked if the intercepted method has finished executing.
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.IPropertySetterInterceptor.OnSet(Cauldron.Interception.PropertyInterceptionInfo,System.Object,System.Object)">
+            <summary>
+            Invoked if the intercepted property setter has been called
+            </summary>
+            <param name="propertyInterceptionInfo">
+            An object that containes information about the intercepted method
+            </param>
+            <param name="oldValue">The current value of the property</param>
+            <param name="newValue">The to be new value of the property</param>
+            <returns>If returns false, the backing field will be set to <paramref name="newValue"/></returns>
+        </member>
+        <member name="T:Cauldron.Interception.ISyncRoot">
+            <summary>
+            Adds a sync-root to the interceptor. The sync-root object is the same for all interceptors applied to the property, field or method.
+            <para/>
+            This interceptor extension is available for <see cref="T:Cauldron.Interception.IPropertyGetterInterceptor"/>, <see cref="T:Cauldron.Interception.IPropertySetterInterceptor"/>,
+            <see cref="T:Cauldron.Interception.IPropertyInterceptor"/> and <see cref="T:Cauldron.Interception.IMethodInterceptor"/>.
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.ISyncRoot.SyncRoot">
+            <summary>
+            Gets or sets the lock object of the interceptor. This is automatically set by Cauldron. Any value will be overriden.
+            </summary>
+        </member>
+        <member name="T:Cauldron.Interception.PropertyInterceptionInfo">
+            <summary>
+            Contains information about the intercepted property
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.PropertyInterceptionInfo.#ctor(System.Reflection.MethodBase,System.Reflection.MethodBase,System.String,System.Type,System.Object,System.Type,System.Action{System.Object})">
+            <summary>
+            Initializes a new instance of <see cref="T:Cauldron.Interception.PropertyInterceptionInfo"/>
+            </summary>
+            <param name="getterMethod">Provides information about the method</param>
+            <param name="setterMethod">Provides information about the method</param>
+            <param name="propertyName">The name of the intercepted property</param>
+            <param name="propertyType">The return tyoe of the property</param>
+            <param name="instance">The instance of the declaring type</param>
+            <param name="childType">
+            The child type of <see cref="P:Cauldron.Interception.PropertyInterceptionInfo.PropertyType"/> if <see cref="P:Cauldron.Interception.PropertyInterceptionInfo.PropertyType"/> is a <see cref="T:System.Collections.IEnumerable"/>
+            </param>
+            <param name="setter">A delegate to set the property backing field</param>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.ChildType">
+            <summary>
+            Gets the <see cref="T:System.Type"/> of element. Returns null if the <see
+            cref="P:Cauldron.Interception.PropertyInterceptionInfo.PropertyType"/> is not a <see cref="T:System.Collections.IEnumerable"/>.
+            Returns an <see cref="T:System.Object"/> if the weaver was not able to detect the child type.
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.DeclaringType">
+            <summary>
+            Gets the <see cref="T:System.Type"/> of the object where the property resides in
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.GetMethod">
+            <summary>
+            Gets an object that provides information about the getter method
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.Instance">
+            <summary>
+            Gets the instance of the declaring type. Will be null if the property is static
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.PropertyName">
+            <summary>
+            Gets the name of the property
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.PropertyType">
+            <summary>
+            Gets the type of the property
+            </summary>
+        </member>
+        <member name="P:Cauldron.Interception.PropertyInterceptionInfo.SetMethod">
+            <summary>
+            Gets an object that provides information about the setter method
+            </summary>
+        </member>
+        <member name="M:Cauldron.Interception.PropertyInterceptionInfo.SetValue(System.Object)">
+            <summary>
+            Sets the value of the property's backing field
+            </summary>
+            <param name="value">The new value of the property</param>
+        </member>
+        <member name="M:Cauldron.Interception.PropertyInterceptionInfo.ToPropertyInfo">
+            <summary>
+            Converts the <see cref="T:Cauldron.Interception.PropertyInterceptionInfo"/> instance to a <see cref="T:System.Reflection.PropertyInfo"/>
+            </summary>
+            <returns>A new instance of <see cref="T:System.Reflection.PropertyInfo"/></returns>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,25 @@
+﻿<Properties StartupConfiguration="{1E6B6E28-D984-478F-898F-FE38A10EDFFF}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="CauldronInterceptionFodyExample/Interceptors/OnPropertySetAttribute.cs">
+    <Files>
+      <File FileName="CauldronInterceptionFodyExample/Interceptors/LoggerAttribute.cs" Line="26" Column="67" />
+      <File FileName="CauldronInterceptionFodyExample/Properties/AssemblyInfo.cs" Line="1" Column="1" />
+      <File FileName="CauldronInterceptionFodyExample/Interceptors/OnPropertySetAttribute.cs" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="CauldronInterceptionFodyExample" expanded="True">
+            <Node name="CauldronInterceptionFodyExample" expanded="True" />
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.CauldronInterceptionFodyExample PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>

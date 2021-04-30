@@ -1,0 +1,4 @@
+Enter -> Program Main System.String[]
+Enter -> Program Add 5 20
+Exit -> Add
+Exit -> Main
